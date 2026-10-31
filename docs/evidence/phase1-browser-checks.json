@@ -1,0 +1,10 @@
+[
+  "Protected resident page redirects anonymous visitors to login.",
+  "Signup validates inputs, updates password rules, saves one resident and signs them in.",
+  "Login survives refresh; the session cookie is HttpOnly and SameSite=Lax.",
+  "Resident is blocked from administrator pages and API actions.",
+  "Logout invalidates the old session and protected pages remain unavailable afterward.",
+  "Wrong credentials show a safe error, clear the password and preserve the email; a valid login succeeds.",
+  "Duplicate signup is rejected even when email capitalization changes.",
+  "Administrators log in to their protected dashboard, survive refresh and cannot use resident-only APIs. External return URLs are ignored."
+]

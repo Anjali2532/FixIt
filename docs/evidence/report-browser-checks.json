@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-10-31T10:46:45.232Z",
+  "checks": [
+    "Resident submits an issue with category, priority, location and description; initial history is saved.",
+    "Saved issue survives browser refresh.",
+    "Search and category filtering show the matching report and handle empty results.",
+    "Administrator opens a resident report, changes status and saves a progress note.",
+    "Resident sees the administrator update and complete history without administrator controls.",
+    "Report detail and list fit a 390-pixel mobile screen."
+  ],
+  "console_errors": []
+}

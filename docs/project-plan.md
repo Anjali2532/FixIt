@@ -11,12 +11,12 @@ initial submission through resolution.
 
 ## 2. Problem - What problem are we solving?
 
-Problems in apartment communities, college campuses, and local
+Problems in ablems, or broken equipment may remain unresolved
+for days or weeks.partment communities, college campuses, and local
 neighborhoods often go unreported or unresolved because people may not
 know who to contact or because the reporting process is inconvenient.
 Issues such as broken lights, damaged sidewalks, overflowing trash cans,
-potholes, plumbing problems, or broken equipment may remain unresolved
-for days or weeks.
+potholes, plumbing pro
 
 Reports may also be scattered across phone calls, emails, text messages,
 or informal conversations, making them difficult for administrators to
@@ -101,7 +101,7 @@ Explicitly excluded from the MVP:
 -   Interactive maps showing all reported problems
 -   Email, text message, or push notifications
 -   Advanced analytics and reporting
--   Automatic or AI-based issue categorization
+-   Automatic issue categorization
 -   Automatic detection of duplicate reports
 -   User voting or upvoting of community problems
 -   Native Android or iOS applications
@@ -151,7 +151,7 @@ The planned technology stack for FixIt includes:
     assignments, and report history
 -   **Flask-SQLAlchemy and psycopg** for database access, with Flask-Migrate for schema changes
 -   **pytest and the Flask test client** for backend testing
--   **Flask-Session** for server-side login sessions and **Werkzeug** for password hashing
+-   **Database-backed authentication sessions with Flask-signed cookies** for login, and **Werkzeug** for password hashing
 -   **Pillow** for checking uploaded images
 -   **REST APIs** for communication between the React frontend and
     backend
