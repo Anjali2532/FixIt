@@ -1,0 +1,19 @@
+{
+  "checked_on": "2026-11-08",
+  "checks": [
+    "Anonymous users are redirected to login before reporting.",
+    "Required fields block empty submissions; seven documented categories are available.",
+    "Client rejects unsupported file types and images over 5 MB.",
+    "Photo preview, removal and replacement work before submission.",
+    "Network failure retains report fields and selected photo for retry.",
+    "Report with optional empty description and photo saves; confirmation, refresh and photo enlargement work.",
+    "Another resident cannot access the report photo.",
+    "Administrator can view the photo and save an update visible in report history.",
+    "Desktop table, open/resolved tabs, counts and clear filters work.",
+    "Report text survives a lost session and returns after login.",
+    "Report submission without photo or description works.",
+    "Missing photo shows a fallback while details and history remain readable.",
+    "Form, photo picker and report cards fit a 390-pixel mobile screen."
+  ],
+  "console_errors": []
+}

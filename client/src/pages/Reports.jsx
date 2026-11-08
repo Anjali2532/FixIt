@@ -74,6 +74,12 @@ export default function Reports() {
           </Link>
         )}
       </div>
+      {!admin && data && (
+        <p className="open-count">
+          {data.counts.Reported + data.counts["In Progress"]} open ·{" "}
+          {data.counts.Resolved} resolved
+        </p>
+      )}
       <div className="report-stats">
         {statuses.map((status) => (
           <article key={status}>
@@ -82,6 +88,29 @@ export default function Reports() {
           </article>
         ))}
       </div>
+      {!admin && (
+        <div className="report-tabs" role="group" aria-label="Report views">
+          {[
+            ["", "All"],
+            ["Open", "Open"],
+            ["Resolved", "Resolved"],
+          ].map(([value, label]) => (
+            <button
+              key={label}
+              aria-pressed={filters.status === value}
+              onClick={() =>
+                setFilters((current) => ({
+                  ...current,
+                  status: value,
+                  page: 1,
+                }))
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="report-filters">
         <div>
           <label htmlFor="search">Search reports</label>
@@ -104,6 +133,7 @@ export default function Reports() {
             onChange={change}
           >
             <option value="">All statuses</option>
+            {!admin && <option value="Open">Open</option>}
             {statuses.map((value) => (
               <option key={value}>{value}</option>
             ))}
@@ -124,6 +154,16 @@ export default function Reports() {
           </select>
         </div>
       </div>
+      {(filters.q || filters.category || filters.status) && (
+        <button
+          className="clear-filters"
+          onClick={() =>
+            setFilters({ q: "", category: "", status: "", page: 1 })
+          }
+        >
+          Clear filters
+        </button>
+      )}
       <Message>{error}</Message>
       {error && (
         <button onClick={() => setRetry((n) => n + 1)}>Try again</button>
@@ -134,6 +174,46 @@ export default function Reports() {
           <p className="result-count">
             {data.total} {data.total === 1 ? "report" : "reports"} found
           </p>
+          {data.issues.length > 0 && (
+            <table className="report-table">
+              <caption className="sr-only">
+                {admin ? "Community reports" : "Your submitted reports"}
+              </caption>
+              <thead>
+                <tr>
+                  {[
+                    "Report",
+                    "Category",
+                    "Location",
+                    "Submitted",
+                    "Status",
+                  ].map((label) => (
+                    <th key={label} scope="col">
+                      {label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.issues.map((issue) => (
+                  <tr key={issue.id}>
+                    <td>
+                      <Link to={`/reports/${issue.id}`}>
+                        #{issue.id} · {issue.title}
+                      </Link>
+                      {issue.photo_url && <small>Photo attached</small>}
+                    </td>
+                    <td>{issue.category}</td>
+                    <td>{issue.location}</td>
+                    <td>{date(issue.created_at)}</td>
+                    <td>
+                      <Badge status={issue.status} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
           {data.issues.length ? (
             <div className="report-list">
               {data.issues.map((issue) => (
@@ -147,6 +227,9 @@ export default function Reports() {
                       #{issue.id} · {issue.category} · {issue.priority} priority
                     </span>
                     <h2>{issue.title}</h2>
+                    {issue.photo_url && (
+                      <span className="report-meta">Photo attached</span>
+                    )}
                     <p>{issue.location}</p>
                     <small>{date(issue.created_at)}</small>
                   </div>

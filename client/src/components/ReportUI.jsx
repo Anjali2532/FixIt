@@ -1,9 +1,11 @@
 import React from "react";
 
 export const categories = [
+  "Lighting",
+  "Roads & Sidewalks",
+  "Trash & Recycling",
   "Plumbing",
-  "Electrical",
-  "Cleaning",
+  "Equipment & Facilities",
   "Safety",
   "Other",
 ];

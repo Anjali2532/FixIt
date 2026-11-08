@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
 import { api } from "../api";
+import ReportPhoto from "../components/ReportPhoto";
 import { useAuth, dashboardPath } from "../auth";
 import { statuses, date, Message, Badge } from "../components/ReportUI";
 
@@ -85,7 +86,17 @@ export default function ReportDetail() {
               <h3>Location</h3>
               <p>{data.issue.location}</p>
               <h3>Description</h3>
-              <p>{data.issue.description}</p>
+              <p>
+                {data.issue.description ||
+                  "No additional description provided."}
+              </p>
+              {data.issue.photo_url && (
+                <ReportPhoto
+                  key={data.issue.photo_url}
+                  src={data.issue.photo_url}
+                  title={data.issue.title}
+                />
+              )}
             </article>
             <article className="account-card">
               <h2>Progress history</h2>

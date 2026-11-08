@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { api } from "../api";
 import { dashboardPath, useAuth } from "../auth";
 import Alert from "../components/Alert";
@@ -78,7 +78,8 @@ function validation(values, signup) {
 
 export default function AuthForm({ signup = false }) {
   const { user, signedIn, notice } = useAuth(),
-    navigate = useNavigate();
+    navigate = useNavigate(),
+    location = useLocation();
   const [values, setValues] = useState({
     name: "",
     email: "",
@@ -89,7 +90,15 @@ export default function AuthForm({ signup = false }) {
     [message, setMessage] = useState(""),
     [busy, setBusy] = useState(false),
     [submitted, setSubmitted] = useState(false);
-  if (user) return <Navigate to={dashboardPath(user)} replace />;
+  function destination(account) {
+    const next = new URLSearchParams(location.search).get("next");
+    const reportPage =
+      next === "/reports/new" || /^\/reports\/\d+$/.test(next || "");
+    return account.role === "Resident" && reportPage
+      ? next
+      : dashboardPath(account);
+  }
+  if (user) return <Navigate to={destination(user)} replace />;
   function change(event) {
     const next = { ...values, [event.target.name]: event.target.value };
     setValues(next);
@@ -113,8 +122,7 @@ export default function AuthForm({ signup = false }) {
         { method: "POST", body: values },
       );
       signedIn(data.user);
-      // Send each user to the dashboard for their role.
-      navigate(dashboardPath(data.user), {
+      navigate(destination(data.user), {
         replace: true,
         state: {
           message: signup

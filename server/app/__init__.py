@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 from flask import Flask, jsonify, request
 from flask_wtf.csrf import CSRFError
-from werkzeug.exceptions import TooManyRequests
+from werkzeug.exceptions import TooManyRequests, RequestEntityTooLarge
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -30,7 +30,11 @@ def create_app(test_config=None):
         SESSION_REFRESH_EACH_REQUEST=True,
         PERMANENT_SESSION_LIFETIME=timedelta(minutes=60),
         LOGIN_LOCK_MINUTES=15,
-        MAX_CONTENT_LENGTH=16 * 1024,
+        MAX_CONTENT_LENGTH=6 * 1024 * 1024,
+        UPLOAD_FOLDER=os.environ.get(
+            "UPLOAD_FOLDER",
+            str(Path(__file__).resolve().parents[2] / ".local" / "uploads"),
+        ),
         RATELIMIT_STORAGE_URI=os.environ.get("RATELIMIT_STORAGE_URI", "memory://"),
     )
     if test_config:
@@ -69,6 +73,16 @@ def create_app(test_config=None):
             response.headers["Cache-Control"] = "no-store"
             response.headers["X-Content-Type-Options"] = "nosniff"
         return response
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def upload_too_large(error):
+        return (
+            jsonify(
+                message="This photo is too large (maximum 5 MB). Please choose a smaller image.",
+                errors={"photo": "Maximum photo size is 5 MB."},
+            ),
+            413,
+        )
 
     @app.errorhandler(CSRFError)
     def csrf_error(error):

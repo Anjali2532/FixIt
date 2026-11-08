@@ -34,7 +34,7 @@ def report(client, **overrides):
             title="Broken hallway light",
             description="The light beside the second floor stairs does not turn on.",
             location="Building A, second floor",
-            category="Electrical",
+            category="Lighting",
             priority="High",
         )
         | overrides,
@@ -76,8 +76,8 @@ def test_create_persists_and_ignores_owner_status_injection(client):
 @pytest.mark.parametrize(
     "overrides,field",
     [
-        ({"title": "a"}, "title"),
-        ({"description": "short"}, "description"),
+        ({"title": ""}, "title"),
+        ({"description": "x" * 1001}, "description"),
         ({"location": ""}, "location"),
         ({"category": "invalid"}, "category"),
         ({"priority": "Urgent"}, "priority"),

@@ -861,3 +861,186 @@ button:disabled {
     font-size: 30px;
   }
 }
+
+.report-form fieldset {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.photo-picker {
+  border-top: 1px solid #dce4da;
+  padding-top: 22px;
+}
+.photo-picker > p,
+.draft-note {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #607168;
+}
+.photo-preview {
+  margin-top: 16px;
+}
+.photo-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 260px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+.photo-preview p {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.report-photo {
+  margin-top: 25px;
+}
+.photo-open {
+  display: block;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: zoom-in;
+}
+.photo-open img {
+  display: block;
+  max-width: 100%;
+  max-height: 330px;
+  border-radius: 8px;
+}
+.report-photo small {
+  display: block;
+  margin-top: 8px;
+  color: #607168;
+}
+.photo-dialog {
+  max-width: min(95vw, 1100px);
+  max-height: 95vh;
+  border: 0;
+  border-radius: 12px;
+  padding: 18px;
+}
+.photo-dialog::backdrop {
+  background: #102c28bb;
+}
+.photo-dialog > button {
+  display: block;
+  margin-left: auto;
+  margin-bottom: 12px;
+}
+.photo-dialog img {
+  display: block;
+  max-width: 100%;
+  max-height: 78vh;
+  object-fit: contain;
+}
+.report-confirmation {
+  margin-top: 30px;
+}
+.report-confirmation h1 {
+  font-size: 38px;
+}
+.report-confirmation > h2 {
+  font-size: 20px;
+  overflow-wrap: anywhere;
+}
+.report-confirmation > .hero-actions {
+  margin-bottom: 25px;
+}
+.confirmation-mark {
+  font-size: 32px;
+  color: #287042;
+}
+.report-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.report-tabs button {
+  padding: 10px 20px;
+  border-radius: 22px;
+}
+.report-tabs button[aria-pressed="true"] {
+  background: #155e55;
+  color: white;
+  border-color: #155e55;
+}
+.clear-filters {
+  margin: 15px 0;
+}
+.open-count {
+  font-size: 14px;
+  color: #607168;
+}
+.report-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  border: 1px solid #dce4da;
+  border-radius: 10px;
+  overflow: hidden;
+  table-layout: fixed;
+}
+.report-table th {
+  text-align: left;
+  padding: 15px 12px;
+  background: #edf3eb;
+  font-size: 12px;
+}
+.report-table td {
+  padding: 18px 12px;
+  border-top: 1px solid #e6ece3;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+  vertical-align: top;
+}
+.report-table th:first-child {
+  width: 28%;
+}
+.report-table th:last-child {
+  width: 15%;
+}
+.report-table td small {
+  display: block;
+  font-size: 11px;
+  color: #607168;
+  margin-top: 8px;
+}
+.report-table + .report-list {
+  display: none;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.assignment-note {
+  font-size: 12px;
+  color: #607168;
+}
+@media (max-width: 700px) {
+  .report-table {
+    display: none;
+  }
+  .report-table + .report-list {
+    display: grid;
+  }
+  .photo-dialog {
+    padding: 12px;
+  }
+  .report-confirmation h1 {
+    font-size: 30px;
+  }
+}
+
+.report-badge.in-progress {
+  background: #fff0da;
+  color: #86581e;
+}

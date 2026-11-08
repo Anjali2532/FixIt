@@ -43,15 +43,24 @@ The reporting workflow is also working:
 - Each report has a detail page and a history of progress updates.
 - Administrators can review all reports, change their status and add a note visible to the resident.
 - Residents can only read their own reports and cannot change administrator progress updates.
-- All 57 backend tests pass on SQLite and PostgreSQL. Six browser checks cover the reporting workflow and mobile layout.
+- Backend and browser checks cover reporting, permissions, photos and mobile layouts. See the dated verification results in [Development setup](docs/development-setup.md).
 
-Photo uploads and assignment are still planned. The current workflow uses three statuses; Assigned will be added with assignment.
+Phase 2 is complete:
+
+- Residents can attach one JPG, PNG or WEBP photo, preview it and remove it before submission.
+- Uploads are checked by content, limited to 5 MB and 20 megapixels, and saved with generated names outside Git.
+- Only the report owner and administrators can view the photo; it can be enlarged on the details page.
+- The form uses the documented categories, a 100-character title and an optional 1,000-character description.
+- A confirmation shows the report number. Report text is kept in the tab if a session ends; reselect any photo after logging in.
+- My Reports has All, Open and Resolved views, a desktop table and mobile cards.
+
+Phase 3 still includes assignment, the Assigned status, remaining administrator rules, deployment and final cross-browser testing.
 
 ## Run locally
 
 ### Start again on this computer
 
-The project is in `Documents/Workspace/FixIt`. Its Python environment, frontend packages and local `.env` are already set up. PostgreSQL must be running.
+The project is in `Documents/Workspace/FixIt`. Its Python environment, frontend packages and local `.env` are already set up. The command below starts this computer’s existing project database.
 
 Replace `/path/to/FixIt` with the location where you saved the project.
 
@@ -60,6 +69,7 @@ Open a terminal for the backend:
 ```bash
 cd /path/to/FixIt
 source .venv/bin/activate
+python server/start_database.py
 flask --app server.app db-check
 flask --app server.app db upgrade
 flask --app server.app run --port 5001

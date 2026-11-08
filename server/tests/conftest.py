@@ -8,7 +8,7 @@ from server.app.extensions import db
 
 
 @pytest.fixture
-def app():
+def app(tmp_path):
     url = os.environ.get("FIXIT_TEST_DATABASE_URL", "sqlite:///:memory:")
     parsed = make_url(url)
     if parsed.get_backend_name() != "sqlite" and (
@@ -16,7 +16,12 @@ def app():
     ):
         raise RuntimeError("Tests may only reset the local fixit_test database.")
     app = create_app(
-        {"TESTING": True, "SQLALCHEMY_DATABASE_URI": url, "RATELIMIT_ENABLED": False}
+        {
+            "TESTING": True,
+            "SQLALCHEMY_DATABASE_URI": url,
+            "RATELIMIT_ENABLED": False,
+            "UPLOAD_FOLDER": str(tmp_path / "uploads"),
+        }
     )
     with app.app_context():
         db.create_all()

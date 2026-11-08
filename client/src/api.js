@@ -21,13 +21,14 @@ export async function api(path, { method = "GET", body } = {}, retry = true) {
       csrfToken = (await response.json()).csrf_token;
     }
     const headers = method === "GET" ? {} : { "X-CSRFToken": csrfToken };
-    if (body) headers["Content-Type"] = "application/json";
+    const multipart = body instanceof FormData;
+    if (body && !multipart) headers["Content-Type"] = "application/json";
     const response = await fetch(path, {
       method,
       headers,
       credentials: "same-origin",
-      body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(10000),
+      body: body ? (multipart ? body : JSON.stringify(body)) : undefined,
+      signal: AbortSignal.timeout(multipart ? 60000 : 10000),
     });
     let data = {};
     if (response.status !== 204) {

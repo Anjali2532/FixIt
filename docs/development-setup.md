@@ -77,6 +77,7 @@ Backend terminal:
 ```bash
 cd /path/to/FixIt
 source .venv/bin/activate
+python server/start_database.py
 flask --app server.app db-check
 flask --app server.app db upgrade
 flask --app server.app run --port 5001
@@ -104,7 +105,7 @@ Prerequisites: Python, PostgreSQL, and Node.js 20.19+ or 22.12+. This session wa
 7. In `client/`, run `npm ci` followed by `npm run dev`.
 8. Open `http://127.0.0.1:5173`.
 
-The isolated database used for this verification runs on local port **55432**, with data under `/tmp/fixit-oct31/postgres`. It is a local test instance, not a hosted or permanent database. The ignored `.env` currently points to it. For ongoing work, configure your normal PostgreSQL instance and update `.env`.
+The original October 31 verification database used temporary storage under `/tmp` and is no longer available. On November 8, a fresh dedicated PostgreSQL 16 instance was created on local port **55432**, with data stored in the ignored `.local/postgres` folder. It is local development storage, not hosted storage or a backup. Old temporary accounts and reports were not recovered. `python server/start_database.py` restarts this existing instance. A fresh clone needs its own PostgreSQL database and `.env` setup as described above.
 
 ## Administrator accounts
 
@@ -145,7 +146,7 @@ npm run build
 
 ## Next work
 
-- Add photo uploads and report assignment, including the Assigned status.
+- Add report assignment, the Assigned status and assignment-dependent status rules.
 - Align categories and the remaining report rules with the use case narratives.
 - Complete the remaining administrator features and deploy the app.
 
@@ -164,4 +165,21 @@ Run `flask --app server.app db upgrade` before starting the updated backend. Mig
 
 Verification: 57 backend tests passed on SQLite and on the dedicated local PostgreSQL test database. Six browser checks passed for submission, refresh persistence, search/filtering, administrator updates, resident history and mobile layout. The frontend build passed. Screenshots and browser results are in `docs/evidence/report-*.png`, `my-reports.png`, `admin-report-update.png` and `report-browser-checks.json`. Screenshots use a temporary test account and report, which were removed after verification.
 
-Photo uploads and assignment remain future work. This update does not add hours to the project tracker or publish the local source files to GitHub.
+This section records the earlier October 31 reporting implementation. Photos were added on November 8 as described below; assignment is still pending.
+
+
+## Phase 2 completed November 8, 2026
+
+Reports support one optional JPEG, PNG or WEBP photo of at most 5 MB and 20 megapixels. Pillow verifies the file contents, corrects orientation and writes a new JPEG without original EXIF metadata. Generated filenames stay in `.local/uploads` by default. Set `UPLOAD_FOLDER` to an absolute persistent folder if needed. Photo reads use the same owner/administrator permissions as report details; missing files show a fallback in the UI.
+
+Migration `e8c42b1a7501` adds nullable photo and submission-key fields. Existing reports are retained, Electrical becomes Lighting, and Cleaning becomes Trash & Recycling. Existing longer descriptions are preserved. New reports follow the use cases: title up to 100 characters, optional description up to 1,000 characters, location and one of the seven documented categories. Run `flask --app server.app db upgrade` before starting the updated backend.
+
+Report submissions include a per-draft identifier so retrying the same submission does not create another report. A failed upload or database save does not create a partial report. Users can retry a photo failure or remove the photo and submit without one. The photo preview supports removal and replacement. The report details photo opens in an accessible dialog with Close and Escape controls.
+
+The current tab stores report text in session storage, scoped to the signed-in account. If the session ends, the text is restored when the resident returns after login; file selections must be made again. Browser storage may be unavailable in restricted browser modes. The app still works without draft storage in that case.
+
+My Reports provides All, Open and Resolved views, search, category and status filters, a clear-filters control, counts and pagination. The list is a table on desktop and cards on mobile. Report history remains read-only for residents. Assignment is Phase 3 and has not been added.
+
+Verification results and screenshots are saved in `docs/evidence/phase2-*`. Automated browser verification used a labeled test fixture. The current report screenshots use the supplied ceiling-light photo in a temporary demonstration report. Temporary browser accounts and reports are removed after checks. No work hours or workbook entries were added by this implementation update, and no changes were pushed to GitHub.
+
+Final November 8 verification: **77 tests passed on SQLite, 77 passed on PostgreSQL, 13 browser checks passed, and the frontend production build passed**. The migration test confirms an existing report survives upgrade, downgrade and upgrade. The two database test runs each report eight pre-existing Flask-SQLAlchemy migration deprecation warnings. Saved test outputs are `phase2-sqlite-tests.txt` and `phase2-postgres-tests.txt`; browser results are `phase2-browser-checks.json`.

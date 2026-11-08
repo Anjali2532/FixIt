@@ -39,7 +39,7 @@ export default function Home() {
           [
             "01",
             "Report a problem",
-            "Describe the issue, choose a category and share its location.",
+            "Describe the issue, choose a category and add a photo.",
           ],
           [
             "02",

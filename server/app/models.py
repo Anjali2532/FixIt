@@ -2,7 +2,16 @@
 
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, String, Text, func, text
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from .extensions import db
@@ -59,6 +68,7 @@ class AuthSession(db.Model):
 class Issue(db.Model):
     __tablename__ = "issues"
     __table_args__ = (
+        UniqueConstraint("user_id", "submission_key", name="unique_report_submission"),
         CheckConstraint(
             "status IN ('Reported', 'In Progress', 'Resolved')",
             name="valid_issue_status",
@@ -71,6 +81,8 @@ class Issue(db.Model):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), nullable=False, index=True
     )
+    photo_name: Mapped[str | None] = mapped_column(String(36))
+    submission_key: Mapped[str | None] = mapped_column(String(36))
     title: Mapped[str] = mapped_column(String(120), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     location: Mapped[str] = mapped_column(String(200), nullable=False)
