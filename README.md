@@ -134,6 +134,7 @@ Public signup always creates a Resident account. To create an administrator, run
 - [Use case narratives](docs/use-case-narratives.md)
 - [Project tracker workbook](docs/FixIt_Project_Tracker_Workbook.xlsx)
 - [Development setup and verification](docs/development-setup.md)
+- [Design and test explanations](docs/design-and-testing.md)
 - [Deployment instructions](docs/deployment.md)
 - [Final demo guide](docs/demo-guide.md)
 
