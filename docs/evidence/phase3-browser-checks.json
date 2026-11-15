@@ -1,0 +1,53 @@
+{
+  "checked_on": "2026-11-15",
+  "results": [
+    {
+      "engine": "chrome",
+      "checks": [
+        "Resident signs up and submits a report with a photo and initial history.",
+        "Administrator creates maintenance contacts through the staff screen.",
+        "Assignment changes status to Assigned and is visible to the report owner.",
+        "In-progress work can be reassigned; stale administrator updates receive a conflict.",
+        "Resolution, reopening, note-only updates and detailed administrator history work.",
+        "Resident sees assignment and progress without administrator actions or private actor details.",
+        "Administrator dashboard summaries, staff filtering, sorting and attention view work.",
+        "Mobile navigation, resident cards, administrator controls and offline notice work at 390 pixels.",
+        "Administrator can deactivate a staff contact without deleting report history.",
+        "Resident access to staff management is blocked."
+      ],
+      "console_errors": []
+    },
+    {
+      "engine": "firefox",
+      "checks": [
+        "Resident signs up and submits a report with a photo and initial history.",
+        "Administrator creates maintenance contacts through the staff screen.",
+        "Assignment changes status to Assigned and is visible to the report owner.",
+        "In-progress work can be reassigned; stale administrator updates receive a conflict.",
+        "Resolution, reopening, note-only updates and detailed administrator history work.",
+        "Resident sees assignment and progress without administrator actions or private actor details.",
+        "Administrator dashboard summaries, staff filtering, sorting and attention view work.",
+        "Mobile navigation, resident cards, administrator controls and offline notice work at 390 pixels.",
+        "Administrator can deactivate a staff contact without deleting report history.",
+        "Resident access to staff management is blocked."
+      ],
+      "console_errors": []
+    },
+    {
+      "engine": "webkit",
+      "checks": [
+        "Resident signs up and submits a report with a photo and initial history.",
+        "Administrator creates maintenance contacts through the staff screen.",
+        "Assignment changes status to Assigned and is visible to the report owner.",
+        "In-progress work can be reassigned; stale administrator updates receive a conflict.",
+        "Resolution, reopening, note-only updates and detailed administrator history work.",
+        "Resident sees assignment and progress without administrator actions or private actor details.",
+        "Administrator dashboard summaries, staff filtering, sorting and attention view work.",
+        "Mobile navigation, resident cards, administrator controls and offline notice work at 390 pixels.",
+        "Administrator can deactivate a staff contact without deleting report history.",
+        "Resident access to staff management is blocked."
+      ],
+      "console_errors": []
+    }
+  ]
+}

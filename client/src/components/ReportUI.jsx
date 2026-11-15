@@ -9,7 +9,7 @@ export const categories = [
   "Safety",
   "Other",
 ];
-export const statuses = ["Reported", "In Progress", "Resolved"];
+export const statuses = ["Reported", "Assigned", "In Progress", "Resolved"];
 export const date = (value) =>
   new Date(value).toLocaleString(undefined, {
     dateStyle: "medium",

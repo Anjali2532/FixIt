@@ -21,3 +21,6 @@ instance/
 *.log
 .DS_Store
 docs/*.xlsx.inspect.ndjson
+
+# Temporary Excel lock files
+~$*

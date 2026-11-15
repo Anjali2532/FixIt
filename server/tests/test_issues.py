@@ -6,6 +6,15 @@ from server.app.security.password import hash_password
 
 
 def mutate(client, method, path, body):
+    if (
+        method == "patch"
+        and path.startswith("/api/issues/")
+        and isinstance(body, dict)
+        and "version" not in body
+    ):
+        detail = client.get(path)
+        if detail.status_code == 200:
+            body = body | {"version": detail.json["issue"]["version"]}
     token = client.get("/api/auth/csrf").json["csrf_token"]
     return getattr(client, method)(path, json=body, headers={"X-CSRFToken": token})
 
@@ -116,6 +125,18 @@ def test_admin_progress_visible_to_owner_and_history_preserved(client, app):
     staff = app.test_client()
     admin(staff)
     assert staff.get("/api/issues").json["total"] == 1
+    contact = mutate(
+        staff, "post", "/api/staff", dict(name="Test Technician", team="Maintenance")
+    ).json["contact"]
+    assert (
+        mutate(
+            staff,
+            "post",
+            f"/api/issues/{issue_id}/assignment",
+            dict(staff_id=contact["id"], version=1),
+        ).status_code
+        == 200
+    )
     for status in ["In Progress", "Resolved"]:
         assert (
             mutate(
@@ -130,6 +151,8 @@ def test_admin_progress_visible_to_owner_and_history_preserved(client, app):
     assert result["issue"]["status"] == "Resolved"
     assert [item["status"] for item in result["updates"]] == [
         "Reported",
+        "Assigned",
+        "Assigned",
         "In Progress",
         "Resolved",
     ]

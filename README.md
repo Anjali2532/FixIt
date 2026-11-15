@@ -38,7 +38,7 @@ Phase 1 is complete:
 The reporting workflow is also working:
 
 - Residents can submit an issue with a title, description, location, category and priority.
-- My Reports shows saved issues and counts for Reported, In Progress and Resolved.
+- My Reports shows saved issues and counts for Reported, Assigned, In Progress and Resolved.
 - Search, status and category filters help find reports; lists have pagination.
 - Each report has a detail page and a history of progress updates.
 - Administrators can review all reports, change their status and add a note visible to the resident.
@@ -54,7 +54,16 @@ Phase 2 is complete:
 - A confirmation shows the report number. Report text is kept in the tab if a session ends; reselect any photo after logging in.
 - My Reports has All, Open and Resolved views, a desktop table and mobile cards.
 
-Phase 3 still includes assignment, the Assigned status, remaining administrator rules, deployment and final cross-browser testing.
+Phase 3 application features are implemented:
+
+- Administrators can add staff contacts, deactivate them, assign and reassign reports.
+- Reports support Reported, Assigned, In Progress and Resolved, with resolution notes and reopening.
+- The dashboard includes attention counts, category totals, staff filters and sorting.
+- History records assignments, old/new values, notes, timestamps and the administrator responsible.
+- Report versions prevent older tabs from overwriting newer updates.
+- Mobile navigation and an offline notice are available.
+
+The local test suite passes on SQLite and PostgreSQL, and the full workflow passes in Chrome, Firefox and WebKit with mobile emulation. Deployment files and a demo guide are prepared. The app is not published online yet because a hosting account has not been selected.
 
 ## Run locally
 
@@ -125,6 +134,8 @@ Public signup always creates a Resident account. To create an administrator, run
 - [Use case narratives](docs/use-case-narratives.md)
 - [Project tracker workbook](docs/FixIt_Project_Tracker_Workbook.xlsx)
 - [Development setup and verification](docs/development-setup.md)
+- [Deployment instructions](docs/deployment.md)
+- [Final demo guide](docs/demo-guide.md)
 
 ## Scope
 

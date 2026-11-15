@@ -70,7 +70,7 @@ class Issue(db.Model):
     __table_args__ = (
         UniqueConstraint("user_id", "submission_key", name="unique_report_submission"),
         CheckConstraint(
-            "status IN ('Reported', 'In Progress', 'Resolved')",
+            "status IN ('Reported', 'Assigned', 'In Progress', 'Resolved')",
             name="valid_issue_status",
         ),
         CheckConstraint(
@@ -80,6 +80,15 @@ class Issue(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id"), nullable=False, index=True
+    )
+    assigned_to_id: Mapped[int | None] = mapped_column(
+        ForeignKey("staff_contacts.id"), index=True
+    )
+    assigned_to = db.relationship("StaffContact")
+    reporter = db.relationship("User")
+    version: Mapped[int] = mapped_column(default=1, server_default="1", nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
     )
     photo_name: Mapped[str | None] = mapped_column(String(36))
     submission_key: Mapped[str | None] = mapped_column(String(36))
@@ -103,8 +112,28 @@ class IssueUpdate(db.Model):
         ForeignKey("issues.id", ondelete="CASCADE"), nullable=False, index=True
     )
     actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    actor = db.relationship("User")
+    action: Mapped[str] = mapped_column(
+        String(30), default="Created", server_default="Created", nullable=False
+    )
+    old_value: Mapped[str | None] = mapped_column(String(200))
+    new_value: Mapped[str | None] = mapped_column(String(200))
     status: Mapped[str] = mapped_column(String(20), nullable=False)
     note: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+
+
+class StaffContact(db.Model):
+    __tablename__ = "staff_contacts"
+    __table_args__ = (
+        UniqueConstraint("full_name", "team", name="unique_staff_contact"),
+        CheckConstraint("length(trim(full_name)) > 0", name="staff_name_not_blank"),
+    )
+    id: Mapped[int] = mapped_column(primary_key=True)
+    full_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    team: Mapped[str] = mapped_column(String(80), nullable=False)
+    is_active: Mapped[bool] = mapped_column(
+        default=True, server_default=text("true"), nullable=False
     )

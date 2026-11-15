@@ -19,7 +19,26 @@ export default function Reports() {
     category: "",
     status: "",
     page: 1,
+    assignee: "",
+    attention: "",
+    sort: "newest",
   });
+  const [contacts, setContacts] = useState([]);
+  const [staffError, setStaffError] = useState("");
+  useEffect(() => {
+    let active = true;
+    if (admin)
+      api("/api/staff")
+        .then((result) => {
+          if (active) setContacts(result.contacts);
+        })
+        .catch((problem) => {
+          if (active) setStaffError(problem.message);
+        });
+    return () => {
+      active = false;
+    };
+  }, [admin]);
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
     [retry, setRetry] = useState(0);
@@ -76,8 +95,10 @@ export default function Reports() {
       </div>
       {!admin && data && (
         <p className="open-count">
-          {data.counts.Reported + data.counts["In Progress"]} open ·{" "}
-          {data.counts.Resolved} resolved
+          {data.counts.Reported +
+            data.counts.Assigned +
+            data.counts["In Progress"]}{" "}
+          open · {data.counts.Resolved} resolved
         </p>
       )}
       <div className="report-stats">
@@ -88,6 +109,35 @@ export default function Reports() {
           </article>
         ))}
       </div>
+      {admin && data?.summary && (
+        <section className="admin-overview">
+          <button
+            className="attention-card"
+            onClick={() =>
+              setFilters((current) => ({ ...current, attention: "1", page: 1 }))
+            }
+          >
+            <strong>{data.summary.needs_attention}</strong>
+            <span>Needs attention</span>
+            <small>Open and unassigned, or more than seven days old</small>
+          </button>
+          <article className="category-summary">
+            <h2>Reported categories</h2>
+            {data.summary.categories.length ? (
+              <ul>
+                {data.summary.categories.map((category) => (
+                  <li key={category.name}>
+                    <span>{category.name}</span>
+                    <strong>{category.count}</strong>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No reports yet.</p>
+            )}
+          </article>
+        </section>
+      )}
       {!admin && (
         <div className="report-tabs" role="group" aria-label="Report views">
           {[
@@ -154,17 +204,90 @@ export default function Reports() {
           </select>
         </div>
       </div>
-      {(filters.q || filters.category || filters.status) && (
+      <div className="management-filters">
+        {admin && (
+          <div>
+            <label htmlFor="assigned-filter">Assigned to</label>
+            <select
+              id="assigned-filter"
+              value={filters.assignee}
+              onChange={(event) =>
+                setFilters((current) => ({
+                  ...current,
+                  assignee: event.target.value,
+                  page: 1,
+                }))
+              }
+            >
+              <option value="">All staff</option>
+              <option value="unassigned">Unassigned</option>
+              {contacts.map((contact) => (
+                <option key={contact.id} value={contact.id}>
+                  {contact.name}
+                  {contact.is_active ? "" : " (inactive)"}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label htmlFor="sort">Sort reports</label>
+          <select
+            id="sort"
+            value={filters.sort}
+            onChange={(event) =>
+              setFilters((current) => ({
+                ...current,
+                sort: event.target.value,
+                page: 1,
+              }))
+            }
+          >
+            {[
+              ["newest", "Newest first"],
+              ["oldest", "Oldest first"],
+              ["status", "Status"],
+              ["category", "Category"],
+            ].map(([value, label]) => (
+              <option value={value} key={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {admin && (
+          <Link className="button secondary" to="/admin/staff">
+            Manage staff contacts
+          </Link>
+        )}
+      </div>
+      {filters.attention === "1" && (
+        <p role="status">Showing reports that need attention.</p>
+      )}
+      {(filters.q ||
+        filters.category ||
+        filters.status ||
+        filters.assignee ||
+        filters.attention ||
+        filters.sort !== "newest") && (
         <button
           className="clear-filters"
           onClick={() =>
-            setFilters({ q: "", category: "", status: "", page: 1 })
+            setFilters({
+              q: "",
+              category: "",
+              status: "",
+              page: 1,
+              assignee: "",
+              attention: "",
+              sort: "newest",
+            })
           }
         >
           Clear filters
         </button>
       )}
-      <Message>{error}</Message>
+      <Message>{error || staffError}</Message>
       {error && (
         <button onClick={() => setRetry((n) => n + 1)}>Try again</button>
       )}
@@ -172,47 +295,89 @@ export default function Reports() {
       {data && (
         <>
           <p className="result-count">
-            {data.total} {data.total === 1 ? "report" : "reports"} found
+            Showing {data.total} of {data.total_all} reports
           </p>
           {data.issues.length > 0 && (
-            <table className="report-table">
-              <caption className="sr-only">
-                {admin ? "Community reports" : "Your submitted reports"}
-              </caption>
-              <thead>
-                <tr>
-                  {[
-                    "Report",
-                    "Category",
-                    "Location",
-                    "Submitted",
-                    "Status",
-                  ].map((label) => (
-                    <th key={label} scope="col">
-                      {label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.issues.map((issue) => (
-                  <tr key={issue.id}>
-                    <td>
-                      <Link to={`/reports/${issue.id}`}>
-                        #{issue.id} · {issue.title}
-                      </Link>
-                      {issue.photo_url && <small>Photo attached</small>}
-                    </td>
-                    <td>{issue.category}</td>
-                    <td>{issue.location}</td>
-                    <td>{date(issue.created_at)}</td>
-                    <td>
-                      <Badge status={issue.status} />
-                    </td>
+            <div className="report-table-wrap">
+              <table
+                className={`report-table ${admin ? "admin-report-table" : ""}`}
+              >
+                <caption className="sr-only">
+                  {admin ? "Community reports" : "Your submitted reports"}
+                </caption>
+                <thead>
+                  <tr>
+                    {[
+                      "Report",
+                      "Category",
+                      "Location",
+                      ...(admin ? ["Reported by"] : []),
+                      "Assigned to",
+                      "Submitted",
+                      "Status",
+                    ].map((label) => (
+                      <th
+                        key={label}
+                        scope="col"
+                        aria-sort={
+                          label === "Submitted" &&
+                          ["newest", "oldest"].includes(filters.sort)
+                            ? filters.sort === "newest"
+                              ? "descending"
+                              : "ascending"
+                            : label.toLowerCase() === filters.sort
+                              ? "ascending"
+                              : undefined
+                        }
+                      >
+                        {["Submitted", "Status", "Category"].includes(label) ? (
+                          <button
+                            className="table-sort"
+                            onClick={() =>
+                              setFilters((current) => ({
+                                ...current,
+                                sort:
+                                  label === "Submitted"
+                                    ? current.sort === "newest"
+                                      ? "oldest"
+                                      : "newest"
+                                    : label.toLowerCase(),
+                                page: 1,
+                              }))
+                            }
+                            aria-label={`Sort by ${label.toLowerCase()}`}
+                          >
+                            {label}
+                          </button>
+                        ) : (
+                          label
+                        )}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {data.issues.map((issue) => (
+                    <tr key={issue.id}>
+                      <td>
+                        <Link to={`/reports/${issue.id}`}>
+                          #{issue.id} · {issue.title}
+                        </Link>
+                        {issue.photo_url && <small>Photo attached</small>}
+                      </td>
+                      <td>{issue.category}</td>
+                      <td>{issue.location}</td>
+                      {admin && <td>{issue.reporter}</td>}
+                      <td>{issue.assigned_to?.name || "Unassigned"}</td>
+                      <td>{date(issue.created_at)}</td>
+                      <td>
+                        <Badge status={issue.status} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
           {data.issues.length ? (
             <div className="report-list">
@@ -231,6 +396,11 @@ export default function Reports() {
                       <span className="report-meta">Photo attached</span>
                     )}
                     <p>{issue.location}</p>
+                    <p>
+                      Assigned to:{" "}
+                      {issue.assigned_to?.name || "Not assigned yet"}
+                    </p>
+                    {admin && <p>Reported by: {issue.reporter}</p>}
                     <small>{date(issue.created_at)}</small>
                   </div>
                   <Badge status={issue.status} />

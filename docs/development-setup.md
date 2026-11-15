@@ -146,9 +146,9 @@ npm run build
 
 ## Next work
 
-- Add report assignment, the Assigned status and assignment-dependent status rules.
-- Align categories and the remaining report rules with the use case narratives.
-- Complete the remaining administrator features and deploy the app.
+- Complete hosted deployment after a hosting account and plan are selected.
+- Perform the online smoke test after publication.
+- Record actual work dates and hours, and verify the final GitHub evidence links.
 
 ## Work Log evidence
 
@@ -165,7 +165,7 @@ Run `flask --app server.app db upgrade` before starting the updated backend. Mig
 
 Verification: 57 backend tests passed on SQLite and on the dedicated local PostgreSQL test database. Six browser checks passed for submission, refresh persistence, search/filtering, administrator updates, resident history and mobile layout. The frontend build passed. Screenshots and browser results are in `docs/evidence/report-*.png`, `my-reports.png`, `admin-report-update.png` and `report-browser-checks.json`. Screenshots use a temporary test account and report, which were removed after verification.
 
-This section records the earlier October 31 reporting implementation. Photos were added on November 8 as described below; assignment is still pending.
+This section records the earlier October 31 reporting implementation. Photos were added on November 8 as described below. Assignment was added in Phase 3.
 
 
 ## Phase 2 completed November 8, 2026
@@ -178,8 +178,21 @@ Report submissions include a per-draft identifier so retrying the same submissio
 
 The current tab stores report text in session storage, scoped to the signed-in account. If the session ends, the text is restored when the resident returns after login; file selections must be made again. Browser storage may be unavailable in restricted browser modes. The app still works without draft storage in that case.
 
-My Reports provides All, Open and Resolved views, search, category and status filters, a clear-filters control, counts and pagination. The list is a table on desktop and cards on mobile. Report history remains read-only for residents. Assignment is Phase 3 and has not been added.
+My Reports provides All, Open and Resolved views, search, category and status filters, a clear-filters control, counts and pagination. The list is a table on desktop and cards on mobile. Report history remains read-only for residents. Assignment was added in Phase 3 as described below.
 
 Verification results and screenshots are saved in `docs/evidence/phase2-*`. Automated browser verification used a labeled test fixture. The current report screenshots use the supplied ceiling-light photo in a temporary demonstration report. Temporary browser accounts and reports are removed after checks. No work hours or workbook entries were added by this implementation update, and no changes were pushed to GitHub.
 
 Final November 8 verification: **77 tests passed on SQLite, 77 passed on PostgreSQL, 13 browser checks passed, and the frontend production build passed**. The migration test confirms an existing report survives upgrade, downgrade and upgrade. The two database test runs each report eight pre-existing Flask-SQLAlchemy migration deprecation warnings. Saved test outputs are `phase2-sqlite-tests.txt` and `phase2-postgres-tests.txt`; browser results are `phase2-browser-checks.json`.
+
+
+## Phase 3 implementation, November 15, 2026
+
+Added staff contact management, assignment and reassignment, the Assigned status, required resolution notes, reopening and progress-note-only updates. Resolved reports cannot be reassigned until reopened. Assignments and status changes are recorded with old/new values and timestamps; administrators also see the actor’s name. Unchanged statuses and assignments do not add duplicate history entries.
+
+Administrator edits include the report’s version. A stale edit returns a conflict and asks the administrator to reload, preventing a newer change from being overwritten. Assignment and history save in one transaction; failure tests verify rollback together. The dashboard adds needs-attention counts, category totals, assignment filters and date/status/category sorting.
+
+Migration `f307c91d5e24` was applied after a private local database backup. Existing accounts, reports, photos and earlier history were retained. The local app uses React, Flask and PostgreSQL. GitHub CI checks run the SQLite backend tests and frontend build; PostgreSQL results are from local verification. See deployment.md for future hosting requirements; no live URL has been created.
+
+Verification: **94 backend tests passed on SQLite and 94 on PostgreSQL**. **Ten full-workflow checks passed in each of Chrome, Firefox and WebKit**, including 390-pixel mobile emulation. These are browser-engine and emulation tests, not tests on physical iPhones or Android phones. The combined React/API server also passed a Gunicorn readiness check. Test outputs and screenshots are in `docs/evidence/phase3-*`. The CI workflow has been added but has not yet run on GitHub.
+
+Compatibility: legacy resolved reports without an assignee may be reopened to Reported, then assigned before returning to In Progress. Existing in-progress reports can be assigned without losing their current status. Staff deactivation keeps earlier assignment history.

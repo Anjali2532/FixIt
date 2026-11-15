@@ -5,7 +5,7 @@ from datetime import timedelta
 from pathlib import Path
 
 import click
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory, abort
 from flask_wtf.csrf import CSRFError
 from werkzeug.exceptions import TooManyRequests, RequestEntityTooLarge
 from sqlalchemy import text
@@ -15,14 +15,21 @@ from .extensions import csrf, db, limiter, migrate
 
 
 def create_app(test_config=None):
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder=None)
+    database_url = os.environ.get(
+        "DATABASE_URL", "postgresql+psycopg://fixit_app@127.0.0.1:5432/fixit_db"
+    )
+    if database_url.startswith("postgres://") or database_url.startswith(
+        "postgresql://"
+    ):
+        database_url = "postgresql+psycopg://" + database_url.split("://", 1)[1]
     app.config.from_mapping(
-        SQLALCHEMY_DATABASE_URI=os.environ.get(
-            "DATABASE_URL",
-            "postgresql+psycopg://fixit_app@127.0.0.1:5432/fixit_db",
-        ),
+        SQLALCHEMY_DATABASE_URI=database_url,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         SECRET_KEY=os.environ.get("SECRET_KEY"),
+        FRONTEND_FOLDER=str(Path(__file__).resolve().parents[2] / "client" / "dist"),
+        TRUST_PROXY_COUNT=int(os.environ.get("TRUST_PROXY_COUNT", "0")),
+        PRODUCTION=os.environ.get("FIXIT_ENV") == "production",
         SESSION_COOKIE_NAME="fixit_session",
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
@@ -47,6 +54,25 @@ def create_app(test_config=None):
                 "Set a long random SECRET_KEY in .env before starting Flask."
             )
 
+    if app.config["PRODUCTION"]:
+        if len(app.secret_key) < 32 or app.secret_key.startswith("replace_"):
+            raise RuntimeError(
+                "Production SECRET_KEY must contain at least 32 characters."
+            )
+        if app.config["RATELIMIT_STORAGE_URI"] == "memory://":
+            raise RuntimeError(
+                "Set RATELIMIT_STORAGE_URI to a shared Redis store for production."
+            )
+        if not app.config["SQLALCHEMY_DATABASE_URI"].startswith("postgresql"):
+            raise RuntimeError("Use PostgreSQL for the production database.")
+    proxy_count = app.config["TRUST_PROXY_COUNT"]
+    if not 0 <= proxy_count <= 3:
+        raise RuntimeError("TRUST_PROXY_COUNT must match 0–3 trusted proxy hops.")
+    if proxy_count:
+        from werkzeug.middleware.proxy_fix import ProxyFix
+
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=proxy_count, x_proto=proxy_count)
+
     db.init_app(app)
     migrate.init_app(
         app, db, directory=str(Path(__file__).resolve().parent.parent / "migrations")
@@ -60,18 +86,56 @@ def create_app(test_config=None):
 
     from .issues import issues
 
+    from .staff import staff
+
+    app.register_blueprint(staff)
     app.register_blueprint(issues)
     app.register_blueprint(api)
     app.register_blueprint(auth)
     csrf.init_app(app)
     limiter.init_app(app)
-    app.before_request(load_user)
+
+    @app.before_request
+    def authenticate_api():
+        if request.path.startswith("/api/"):
+            load_user()
+
+    @app.get("/", defaults={"path": ""})
+    @app.get("/<path:path>")
+    def frontend(path):
+        if path == "api" or path.startswith("api/"):
+            return jsonify(message="Endpoint not found."), 404
+        folder = Path(app.config["FRONTEND_FOLDER"])
+        if path.startswith(".") or any(
+            part.startswith(".") for part in Path(path).parts
+        ):
+            abort(404)
+        if path.startswith("assets/"):
+            return send_from_directory(folder, path, max_age=31536000)
+        if path and Path(path).suffix:
+            return send_from_directory(folder, path)
+        if not (folder / "index.html").is_file():
+            return (
+                jsonify(message="Build the frontend before running the combined app."),
+                503,
+            )
+        response = send_from_directory(folder, "index.html")
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
     @app.after_request
     def private_responses(response):
         if request.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
             response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+        )
+        if app.config["PRODUCTION"]:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000"
         return response
 
     @app.errorhandler(RequestEntityTooLarge)

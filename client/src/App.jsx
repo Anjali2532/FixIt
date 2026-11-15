@@ -9,6 +9,7 @@ import {
   useLocation,
   useNavigate,
 } from "react-router-dom";
+import Staff from "./pages/Staff";
 import Reports from "./pages/Reports";
 import NewReport from "./pages/NewReport";
 import ReportDetail from "./pages/ReportDetail";
@@ -21,10 +22,22 @@ function Layout() {
   const { user, logout } = useAuth(),
     navigate = useNavigate(),
     location = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [online, setOnline] = useState(navigator.onLine);
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   useEffect(() => {
     setError("");
+    setMenuOpen(false);
     window.scrollTo(0, 0);
   }, [location.pathname]);
   async function handleLogout() {
@@ -50,12 +63,30 @@ function Layout() {
         <Link className="brand" to="/" aria-label="FixIt home">
           <span className="brand-mark">F</span>FixIt
         </Link>
-        <nav className="nav-links" aria-label="Main navigation">
+        <button
+          className="menu-toggle"
+          aria-expanded={menuOpen}
+          aria-controls="main-navigation"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          Menu
+        </button>
+        <nav
+          id="main-navigation"
+          className={`nav-links ${menuOpen ? "mobile-open" : ""}`}
+          aria-label="Main navigation"
+        >
           {user ? (
             <>
               <Link to={dashboardPath(user)}>
                 {user.role === "Administrator" ? "Dashboard" : "My Reports"}
               </Link>
+              {user.role === "Administrator" && (
+                <Link to="/admin/staff">Staff</Link>
+              )}
+              {user.role === "Resident" && (
+                <Link to="/reports/new">Report a problem</Link>
+              )}
               <span className="nav-name">{user.name}</span>
               {user.role === "Administrator" && (
                 <span className="role-badge">Admin</span>
@@ -77,6 +108,14 @@ function Layout() {
       {error && (
         <div className="global-alert">
           <Alert>{error}</Alert>
+        </div>
+      )}
+      {!online && (
+        <div className="global-alert">
+          <div className="alert" role="alert">
+            You’re offline. Your report text is kept in this tab. Reconnect
+            before submitting.
+          </div>
         </div>
       )}
       <main>
@@ -152,6 +191,7 @@ export default function App() {
             </Route>
             <Route element={<Protected role="Administrator" />}>
               <Route path="admin/dashboard" element={<Reports />} />
+              <Route path="admin/staff" element={<Staff />} />
             </Route>
             <Route path="reports/:id" element={<AuthenticatedReport />} />
             <Route

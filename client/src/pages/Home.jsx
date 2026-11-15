@@ -62,7 +62,7 @@ export default function Home() {
       <section className="progress">
         <h2>One report. Clear progress.</h2>
         <ol>
-          {["Reported", "In Progress", "Resolved"].map((status) => (
+          {["Reported", "Assigned", "In Progress", "Resolved"].map((status) => (
             <li key={status}>{status}</li>
           ))}
         </ol>

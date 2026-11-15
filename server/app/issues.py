@@ -2,12 +2,14 @@
 
 from flask import Blueprint, current_app, g, jsonify, request, send_file
 import uuid
+from datetime import timedelta
 from .photos import save_photo, remove_photo, photo_path
 from sqlalchemy import func, or_
 
 from .extensions import db, limiter
-from .models import Issue, IssueUpdate
-from .security.access import require_auth, require_role, aware
+from .models import Issue, IssueUpdate, StaffContact
+from .staff import public_contact
+from .security.access import require_auth, require_role, aware, utc_now
 
 issues = Blueprint("issues", __name__, url_prefix="/api/issues")
 CATEGORIES = (
@@ -19,7 +21,7 @@ CATEGORIES = (
     "Safety",
     "Other",
 )
-STATUSES = ("Reported", "In Progress", "Resolved")
+STATUSES = ("Reported", "Assigned", "In Progress", "Resolved")
 PRIORITIES = ("Low", "Normal", "High")
 
 
@@ -38,6 +40,14 @@ def serialize(issue):
     } | {
         "created_at": aware(issue.created_at).isoformat(),
         "photo_url": f"/api/issues/{issue.id}/photo" if issue.photo_name else None,
+        "assigned_to": public_contact(issue.assigned_to) if issue.assigned_to else None,
+        "version": issue.version,
+        "updated_at": aware(issue.updated_at).isoformat(),
+        **(
+            {"reporter": issue.reporter.full_name}
+            if g.user.role == "Administrator"
+            else {}
+        ),
     }
 
 
@@ -71,6 +81,40 @@ def list_issues():
             return jsonify(message="Choose a valid filter."), 400
         if value:
             query = query.where(getattr(Issue, field) == value)
+    total_all = sum(counts.values())
+    attention = or_(
+        Issue.assigned_to_id.is_(None), Issue.created_at < utc_now() - timedelta(days=7)
+    )
+    attention = (Issue.status != "Resolved") & attention
+    summary = None
+    if g.user.role == "Administrator":
+        needs_attention = db.session.scalar(
+            db.select(func.count()).select_from(Issue).where(attention)
+        )
+        categories = db.session.execute(
+            db.select(Issue.category, func.count())
+            .group_by(Issue.category)
+            .order_by(func.count().desc(), Issue.category)
+        ).all()
+        summary = {
+            "needs_attention": needs_attention,
+            "categories": [
+                {"name": name, "count": count} for name, count in categories
+            ],
+        }
+        assigned = request.args.get("assignee", "")
+        if assigned == "unassigned":
+            query = query.where(Issue.assigned_to_id.is_(None))
+        elif assigned:
+            try:
+                contact_id = int(assigned)
+                if contact_id < 1:
+                    raise ValueError
+            except ValueError:
+                return jsonify(message="Invalid staff filter."), 400
+            query = query.where(Issue.assigned_to_id == contact_id)
+        if request.args.get("attention") == "1":
+            query = query.where(attention)
     search = request.args.get("q", "").strip()[:120]
     if search:
         query = query.where(
@@ -88,13 +132,25 @@ def list_issues():
     except ValueError:
         return jsonify(message="Invalid page."), 400
     total = db.session.scalar(db.select(func.count()).select_from(query.subquery()))
+    sort = request.args.get("sort", "newest")
+    orders = {
+        "newest": Issue.created_at.desc(),
+        "oldest": Issue.created_at.asc(),
+        "status": Issue.status.asc(),
+        "category": Issue.category.asc(),
+    }
+    if sort not in orders:
+        return jsonify(message="Invalid sort option."), 400
     rows = db.session.scalars(
-        query.order_by(Issue.created_at.desc(), Issue.id.desc())
-        .limit(20)
-        .offset((page - 1) * 20)
+        query.order_by(orders[sort], Issue.id.desc()).limit(20).offset((page - 1) * 20)
     ).all()
     return jsonify(
-        issues=[serialize(row) for row in rows], total=total, page=page, counts=counts
+        issues=[serialize(row) for row in rows],
+        total=total,
+        total_all=total_all,
+        page=page,
+        counts=counts,
+        summary=summary,
     )
 
 
@@ -194,6 +250,8 @@ def create_issue():
                 actor_id=g.user.id,
                 status="Reported",
                 note="Report submitted.",
+                action="Created",
+                new_value="Reported",
             )
         )
         db.session.commit()
@@ -231,44 +289,174 @@ def detail(issue_id):
                 "status": row.status,
                 "note": row.note,
                 "created_at": aware(row.created_at).isoformat(),
+                "action": row.action,
+                "old_value": row.old_value,
+                "new_value": row.new_value,
+                **(
+                    {"changed_by": row.actor.full_name}
+                    if g.user.role == "Administrator"
+                    else {}
+                ),
             }
             for row in updates
         ],
     )
 
 
-@issues.patch("/<int:issue_id>")
-@require_role("Administrator")
-def update_issue(issue_id):
-    issue = db.session.scalar(
-        db.select(Issue).where(Issue.id == issue_id).with_for_update()
-    )
-    if not issue:
-        return jsonify(message="Report not found."), 404
-    data = request.get_json(silent=True)
-    if (
-        not isinstance(data, dict)
-        or data.get("status") not in STATUSES
-        or not isinstance(data.get("note"), str)
-        or not 5 <= len(data["note"].strip()) <= 1000
-    ):
-        return (
-            jsonify(
-                message="Choose a status and add a progress note of 5–1000 characters."
-            ),
-            400,
-        )
-    issue.status = data["status"]
+def record_change(issue, action, old_value, new_value, note):
+    issue.version += 1
+    issue.updated_at = utc_now()
     db.session.add(
         IssueUpdate(
             issue_id=issue.id,
             actor_id=g.user.id,
             status=issue.status,
-            note=data["note"].strip(),
+            action=action,
+            old_value=old_value,
+            new_value=new_value,
+            note=note,
         )
     )
+
+
+def editable_issue(issue_id):
+    issue = db.session.scalar(
+        db.select(Issue).where(Issue.id == issue_id).with_for_update()
+    )
+    if not issue:
+        return None, (jsonify(message="Report not found."), 404)
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict) or type(data.get("version")) is not int:
+        return None, (jsonify(message="Reload the report before saving."), 400)
+    if data["version"] != issue.version:
+        return None, (
+            jsonify(
+                message="This report was just updated. Reload it and review the latest changes before saving.",
+                code="REPORT_CHANGED",
+            ),
+            409,
+        )
+    return issue, None
+
+
+@issues.patch("/<int:issue_id>")
+@require_role("Administrator")
+def update_issue(issue_id):
+    issue, error = editable_issue(issue_id)
+    if error:
+        return error
+    data = request.get_json()
+    status, note = data.get("status"), data.get("note", "")
+    if status not in STATUSES:
+        return jsonify(message="Choose a valid status."), 400
+    if status == issue.status:
+        return jsonify(issue=serialize(issue), message="No status change was needed.")
+    if not isinstance(note, str) or not 5 <= len(note.strip()) <= 1000:
+        return (
+            jsonify(
+                message="Add a progress note of 5–1000 characters. Resolution requires a note explaining the fix."
+            ),
+            400,
+        )
+    if status in {"Assigned", "In Progress"} and not issue.assigned_to_id:
+        return (
+            jsonify(
+                message="Assign this report to someone before changing its status."
+            ),
+            400,
+        )
+    allowed = {
+        "Reported": {"Assigned", "Resolved"},
+        "Assigned": {"In Progress", "Resolved"},
+        "In Progress": {"Resolved"},
+        "Resolved": {"In Progress", "Reported"},
+    }
+    if status not in allowed[issue.status]:
+        return (
+            jsonify(
+                message="That status change is not allowed. Resolve the report or reopen a resolved report first."
+            ),
+            400,
+        )
+    old = issue.status
+    issue.status = status
+    record_change(issue, "StatusChanged", old, status, note.strip())
     db.session.commit()
-    return jsonify(issue=serialize(issue))
+    return jsonify(issue=serialize(issue), message="Progress update saved.")
+
+
+@issues.post("/<int:issue_id>/assignment")
+@require_role("Administrator")
+def assign_issue(issue_id):
+    issue, error = editable_issue(issue_id)
+    if error:
+        return error
+    data = request.get_json()
+    staff_id, note = data.get("staff_id"), data.get("note", "")
+    if (
+        type(staff_id) is not int
+        or not isinstance(note, str)
+        or len(note.strip()) > 1000
+    ):
+        return (
+            jsonify(
+                message="Choose a staff member and use a note of at most 1000 characters."
+            ),
+            400,
+        )
+    contact = db.session.get(StaffContact, staff_id)
+    if not contact or not contact.is_active:
+        return jsonify(message="Choose an active staff contact."), 400
+    if issue.status == "Resolved":
+        return (
+            jsonify(message="Reopen this report before changing its assignment."),
+            400,
+        )
+    if issue.assigned_to_id == contact.id:
+        return jsonify(
+            issue=serialize(issue),
+            message="This report is already assigned to that person.",
+        )
+    old = issue.assigned_to.full_name if issue.assigned_to else None
+    issue.assigned_to = contact
+    previous_status = issue.status
+    if previous_status == "Reported":
+        issue.status = "Assigned"
+    record_change(
+        issue,
+        "Reassigned" if old else "Assigned",
+        old,
+        contact.full_name,
+        note.strip() or f"Assigned to {contact.full_name} ({contact.team}).",
+    )
+    if previous_status != issue.status:
+        db.session.add(
+            IssueUpdate(
+                issue_id=issue.id,
+                actor_id=g.user.id,
+                status=issue.status,
+                action="StatusChanged",
+                old_value=previous_status,
+                new_value=issue.status,
+                note="Assignment accepted.",
+            )
+        )
+    db.session.commit()
+    return jsonify(issue=serialize(issue), message="Assignment saved.")
+
+
+@issues.post("/<int:issue_id>/notes")
+@require_role("Administrator")
+def add_note(issue_id):
+    issue, error = editable_issue(issue_id)
+    if error:
+        return error
+    note = request.get_json().get("note")
+    if not isinstance(note, str) or not 5 <= len(note.strip()) <= 1000:
+        return jsonify(message="Add a note of 5–1000 characters."), 400
+    record_change(issue, "NoteAdded", None, None, note.strip())
+    db.session.commit()
+    return jsonify(issue=serialize(issue), message="Progress note saved.")
 
 
 @issues.get("/<int:issue_id>/photo")
