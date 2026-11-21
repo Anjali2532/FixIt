@@ -30,6 +30,7 @@ def create_app(test_config=None):
         FRONTEND_FOLDER=str(Path(__file__).resolve().parents[2] / "client" / "dist"),
         TRUST_PROXY_COUNT=int(os.environ.get("TRUST_PROXY_COUNT", "0")),
         PRODUCTION=os.environ.get("FIXIT_ENV") == "production",
+        ALLOW_DEMO_DATA=os.environ.get("FIXIT_ALLOW_DEMO_DATA") == "1",
         SESSION_COOKIE_NAME="fixit_session",
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
@@ -239,4 +240,7 @@ def create_app(test_config=None):
             ) from error
         click.echo("Database connection successful.")
 
+    from .demo import seed_demo
+
+    app.cli.add_command(seed_demo)
     return app

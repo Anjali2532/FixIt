@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { api } from "../api";
 import { useAuth } from "../auth";
 import {
@@ -10,19 +10,41 @@ import {
   Badge,
 } from "../components/ReportUI";
 
+import {
+  defaultFilters,
+  readReportFilters,
+  writeReportFilters,
+  toggleReportSort,
+} from "../reportFilters";
+
 export default function Reports() {
   const { user } = useAuth(),
     location = useLocation();
   const admin = user.role === "Administrator";
-  const [filters, setFilters] = useState({
-    q: "",
-    category: "",
-    status: "",
-    page: 1,
-    assignee: "",
-    attention: "",
-    sort: "newest",
-  });
+  const [searchParams, setSearchParams] = useSearchParams();
+  const filters = useMemo(
+    () => readReportFilters(searchParams),
+    [searchParams],
+  );
+  function setFilters(value, options = {}) {
+    const next = typeof value === "function" ? value(filters) : value;
+    setSearchParams(writeReportFilters(next), options);
+  }
+  const matchingFilters = Boolean(
+    filters.q ||
+    filters.category ||
+    filters.status ||
+    filters.assignee ||
+    filters.attention,
+  );
+  const sortedColumn = ["newest", "oldest"].includes(filters.sort)
+    ? "Submitted"
+    : filters.sort.startsWith("status")
+      ? "Status"
+      : "Category";
+  const descending = ["newest", "status-desc", "category-desc"].includes(
+    filters.sort,
+  );
   const [contacts, setContacts] = useState([]);
   const [staffError, setStaffError] = useState("");
   useEffect(() => {
@@ -63,11 +85,14 @@ export default function Reports() {
     };
   }, [filters, retry]);
   const change = (event) =>
-    setFilters((current) => ({
-      ...current,
-      [event.target.name]: event.target.value,
-      page: 1,
-    }));
+    setFilters(
+      (current) => ({
+        ...current,
+        [event.target.name]: event.target.value,
+        page: 1,
+      }),
+      { replace: event.target.name === "q" },
+    );
   return (
     <section className="dashboard-page">
       {location.state?.message && (
@@ -246,8 +271,10 @@ export default function Reports() {
             {[
               ["newest", "Newest first"],
               ["oldest", "Oldest first"],
-              ["status", "Status"],
-              ["category", "Category"],
+              ["status", "Status: A to Z"],
+              ["status-desc", "Status: Z to A"],
+              ["category", "Category: A to Z"],
+              ["category-desc", "Category: Z to A"],
             ].map(([value, label]) => (
               <option value={value} key={value}>
                 {label}
@@ -264,25 +291,10 @@ export default function Reports() {
       {filters.attention === "1" && (
         <p role="status">Showing reports that need attention.</p>
       )}
-      {(filters.q ||
-        filters.category ||
-        filters.status ||
-        filters.assignee ||
-        filters.attention ||
-        filters.sort !== "newest") && (
+      {(matchingFilters || filters.sort !== "newest" || filters.page !== 1) && (
         <button
           className="clear-filters"
-          onClick={() =>
-            setFilters({
-              q: "",
-              category: "",
-              status: "",
-              page: 1,
-              assignee: "",
-              attention: "",
-              sort: "newest",
-            })
-          }
+          onClick={() => setFilters(defaultFilters)}
         >
           Clear filters
         </button>
@@ -320,14 +332,11 @@ export default function Reports() {
                         key={label}
                         scope="col"
                         aria-sort={
-                          label === "Submitted" &&
-                          ["newest", "oldest"].includes(filters.sort)
-                            ? filters.sort === "newest"
+                          label === sortedColumn
+                            ? descending
                               ? "descending"
                               : "ascending"
-                            : label.toLowerCase() === filters.sort
-                              ? "ascending"
-                              : undefined
+                            : undefined
                         }
                       >
                         {["Submitted", "Status", "Category"].includes(label) ? (
@@ -336,18 +345,24 @@ export default function Reports() {
                             onClick={() =>
                               setFilters((current) => ({
                                 ...current,
-                                sort:
-                                  label === "Submitted"
-                                    ? current.sort === "newest"
-                                      ? "oldest"
-                                      : "newest"
-                                    : label.toLowerCase(),
+                                sort: toggleReportSort(current.sort, label),
                                 page: 1,
                               }))
                             }
                             aria-label={`Sort by ${label.toLowerCase()}`}
                           >
                             {label}
+                            {label === sortedColumn && (
+                              <span className="sort-indicator">
+                                {label === "Submitted"
+                                  ? descending
+                                    ? " (newest)"
+                                    : " (oldest)"
+                                  : descending
+                                    ? " (Z–A)"
+                                    : " (A–Z)"}
+                              </span>
+                            )}
                           </button>
                         ) : (
                           label
@@ -410,14 +425,14 @@ export default function Reports() {
           ) : (
             <div className="empty-state">
               <h2>
-                {filters.q || filters.status || filters.category
-                  ? "No matching reports"
-                  : "No reports yet"}
+                {matchingFilters ? "No matching reports" : "No reports yet"}
               </h2>
               <p>
-                {admin
-                  ? "Submitted reports will appear here."
-                  : "Use “Report an issue” to let your community know what needs attention."}
+                {matchingFilters
+                  ? "Try different filters or clear them to see more reports."
+                  : admin
+                    ? "Submitted reports will appear here."
+                    : "Use “Report an issue” to let your community know what needs attention."}
               </p>
             </div>
           )}

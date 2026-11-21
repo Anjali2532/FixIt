@@ -196,3 +196,14 @@ Migration `f307c91d5e24` was applied after a private local database backup. Exis
 Verification: **94 backend tests passed on SQLite and 94 on PostgreSQL**. **Ten full-workflow checks passed in each of Chrome, Firefox and WebKit**, including 390-pixel mobile emulation. These are browser-engine and emulation tests, not tests on physical iPhones or Android phones. The combined React/API server also passed a Gunicorn readiness check. Test outputs and screenshots are in `docs/evidence/phase3-*`. The CI workflow has been added but has not yet run on GitHub.
 
 Compatibility: legacy resolved reports without an assignee may be reopened to Reported, then assigned before returning to In Progress. Existing in-progress reports can be assigned without losing their current status. Staff deactivation keeps earlier assignment history.
+
+
+## Dashboard checks added November 21, 2026
+
+Dashboard filters, sorting and pagination are read from the URL. Reloading or using Back restores that view; changing a filter resets the page. Status and category support both alphabetical directions. Only predefined sort values are accepted by the API, and ID breaks ties so records are not repeated or skipped between pages.
+
+The optional `seed-demo` command creates labeled sample data on a local development database. It requires `FIXIT_ALLOW_DEMO_DATA=1`, refuses production or remote database use, and does not replace existing records. Browser verification uses a separate sample database rather than the normal project data. See the README for setup and `npm run test:e2e` instructions.
+
+Testing a database built through migrations exposed an earlier timestamp-default issue on SQLite. Migration `a921b5f0d618` changes the creation defaults to `CURRENT_TIMESTAMP`. A regression test upgrades an older database, checks that existing records survive, then signs up a user, creates a report and seeds sample records. This complements fixtures that create tables directly from the models.
+
+Verification: 111 backend tests passed on SQLite and 111 on PostgreSQL; six Chrome browser checks passed, including 390-pixel viewport emulation. A separate PostgreSQL migration check also preserved an earlier report and history and confirmed the new timestamp defaults. Its result is `week5-postgres-migration.txt`. The frontend build passed. The backend runs report 12 warnings from the existing Flask-SQLAlchemy `get_engine` deprecation. Evidence is in `docs/evidence/week5-*`. These results do not measure personal work hours, and the new code has not yet been pushed.

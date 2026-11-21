@@ -1,0 +1,13 @@
+Verification date: November 21, 2026
+Database: postgres
+
+........................................................................ [ 64%]
+.......................................                                  [100%]
+=============================== warnings summary ===============================
+server/tests/test_photo_migration.py: 8 warnings
+server/tests/test_timestamp_migration.py: 4 warnings
+  ./server/migrations/env.py:21: DeprecationWarning: 'get_engine' is deprecated and will be removed in Flask-SQLAlchemy 3.2. Use 'engine' or 'engines[key]' instead. If you're using Flask-Migrate or Alembic, you'll need to update your 'env.py' file.
+    return current_app.extensions["migrate"].db.get_engine()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+111 passed, 12 warnings in 20.01s

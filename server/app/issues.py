@@ -137,7 +137,9 @@ def list_issues():
         "newest": Issue.created_at.desc(),
         "oldest": Issue.created_at.asc(),
         "status": Issue.status.asc(),
+        "status-desc": Issue.status.desc(),
         "category": Issue.category.asc(),
+        "category-desc": Issue.category.desc(),
     }
     if sort not in orders:
         return jsonify(message="Invalid sort option."), 400

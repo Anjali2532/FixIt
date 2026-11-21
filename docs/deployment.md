@@ -29,4 +29,4 @@ Create an administrator with `flask --app server.app create-admin` and follow th
 
 After hosting is set up, check `/api/ready`, signup, login, photo reporting, assignment, status updates and logout. Restart the service and confirm the report and photo remain available. Verify HTTPS and secure session cookies before recording a live URL.
 
-Back up the database and uploaded photos before future upgrades. The current migration is `f307c91d5e24`. Hosting and live-site checks remain pending.
+Back up the database and uploaded photos before future upgrades. The current migration is `a921b5f0d618`. Hosting and live-site checks remain pending.

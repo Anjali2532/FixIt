@@ -1,0 +1,6 @@
+Verification date: November 21, 2026
+Database: separate local fixit_test PostgreSQL database
+
+PASS: upgraded existing Phase 3 records to a921b5f0d618 without losing the report or history.
+PASS: new signup and report creation work with database timestamp defaults.
+PASS: users, issues and issue_updates use CURRENT_TIMESTAMP.

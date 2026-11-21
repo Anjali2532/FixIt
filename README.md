@@ -117,6 +117,36 @@ Open `http://127.0.0.1:5173`. Run backend tests with `python -m pytest -q` and b
 
 Public signup always creates a Resident account. To create an administrator, run `flask --app server.app create-admin` from the project root with the virtual environment active and follow the prompts.
 
+## Optional demo data
+
+The `seed-demo` command creates 100 labeled sample reports, three residents, two administrators and five staff contacts. It is opt-in, limited to local development and refuses duplicate demo accounts. Use a separate database for these records.
+
+From the project root in a new terminal, with the virtual environment active:
+
+```bash
+mkdir -p .local
+export DATABASE_URL="sqlite:///$PWD/.local/demo.sqlite"
+export FIXIT_ALLOW_DEMO_DATA=1
+flask --app server.app db upgrade
+flask --app server.app seed-demo
+flask --app server.app run --port 5001
+```
+
+Choose a demo password when prompted. Start React in another terminal using the normal instructions. Sign in as `demo.admin1@example.test` or `demo.resident1@example.test` with that password. The existing PostgreSQL database is separate. Close the demo terminal or unset its exported variables before returning to the normal database.
+
+The dashboard keeps filters, sorting and page number in its URL. Refresh or reopen that URL to restore the view. Click the Submitted, Status or Category column heading again to reverse the order. Changing a filter returns to page 1.
+
+## Browser tests
+
+The checks in `client/tests/dashboard.spec.js` use the separate, freshly seeded 100-report database and installed Google Chrome. Set `FIXIT_E2E_EMAIL` to the demo administrator email and `FIXIT_E2E_PASSWORD` to the password chosen above in the test terminal. Keep the password out of Git. With the demo backend and React running:
+
+```bash
+cd client
+npm run test:e2e
+```
+
+Results and failure screenshots stay in the ignored `.local/` folder. `FIXIT_E2E_URL` can select another local preview address. The tests check refresh, Back navigation, both sort directions, filters, pagination, mobile layout and resident ownership.
+
 ## Code layout
 
 - `client/src/pages/` contains the home, account and report screens.

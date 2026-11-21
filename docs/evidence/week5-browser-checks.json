@@ -1,0 +1,32 @@
+{
+  "checked_on": "2026-11-21",
+  "browser": "Google Chrome",
+  "environment": "Local app with a separate 100-report demonstration database. Mobile checks use viewport emulation.",
+  "source": "client/tests/dashboard.spec.js",
+  "checks": [
+    {
+      "name": "filtered page and order survive refresh",
+      "status": "passed"
+    },
+    {
+      "name": "column buttons toggle both sort directions",
+      "status": "passed"
+    },
+    {
+      "name": "back navigation restores filters and changing a filter resets the page",
+      "status": "passed"
+    },
+    {
+      "name": "a shared filter URL works and clear filters restores all reports",
+      "status": "passed"
+    },
+    {
+      "name": "mobile filters restore without horizontal page overflow",
+      "status": "passed"
+    },
+    {
+      "name": "resident sorting and shared URLs do not reveal other residents reports",
+      "status": "passed"
+    }
+  ]
+}
